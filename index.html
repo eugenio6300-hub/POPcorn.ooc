@@ -58,7 +58,11 @@
     .user-email { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
     .panel { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
     .panel h3 { font-size: 15px; margin: 0 0 8px; }
-    .my-post-item { display: block; padding: 10px; margin-bottom: 6px; background: #fff; border: 1px solid #eee; border-radius: 8px; text-decoration: none; color: #333; }
+    .my-post-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px; margin-bottom: 6px; background: #fff; border: 1px solid #eee; border-radius: 8px; }
+    .my-post-link { flex: 1; min-width: 0; text-decoration: none; color: #333; }
+    .my-post-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .btn-danger { color: #e74c3c; border-color: #f3c0ba; }
+    .edit-banner { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 12px; background: #fff8e6; border: 1px solid #ffe2a8; border-radius: 8px; font-size: 14px; font-weight: bold; color: #8a5a00; }
     .my-post-preview { font-size: 14px; word-break: break-all; }
     .my-post-date { font-size: 12px; color: #999; margin-top: 2px; }
     .sc-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
@@ -126,6 +130,12 @@
       <a class="btn-link" href="?page=shortcuts" style="display:inline-block; margin-bottom:12px;">⚙️ 내 단축어 관리 →</a>
     </div>
 
+    <!-- 수정 모드일 때만 보임 -->
+    <div class="edit-banner" id="edit-banner" style="display:none;">
+      <span>✏️ 내 글 수정 중</span>
+      <button class="btn-small" id="cancel-edit-btn">수정 취소</button>
+    </div>
+
     <textarea id="ooc-editor" placeholder="여기에 OOC 명령어를 작성하세요..."></textarea>
 
     <div class="option-box">
@@ -136,6 +146,11 @@
       <div class="password-row">
         <label for="password-input">🔒 비밀번호 (선택)</label>
         <input type="text" id="password-input" class="text-input" placeholder="비워두면 누구나 열람 가능" maxlength="30" autocomplete="off" />
+        <!-- 수정 모드 + 기존 비밀번호가 있을 때만 보임 -->
+        <label class="check-label" id="remove-pw-row" style="display:none; margin-top:8px;">
+          <input type="checkbox" id="remove-pw-checkbox" />
+          <span>기존 비밀번호 없애기 (누구나 열람 가능하게)</span>
+        </label>
       </div>
     </div>
 
@@ -145,7 +160,7 @@
     </div>
 
     <div id="publish-result">
-      <div>✅ 발행 완료! 아래 링크를 공유하세요.</div>
+      <div id="publish-result-title">✅ 발행 완료! 아래 링크를 공유하세요.</div>
       <div id="publish-meta"></div>
       <input type="text" id="share-link" readonly />
       <div class="btn-row">
@@ -255,7 +270,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import {
       getFirestore, collection, doc, getDoc, getDocs, setDoc, writeBatch,
-      query, orderBy, limit, serverTimestamp,
+      query, orderBy, limit, serverTimestamp, deleteField,
     } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
     import {
       getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
@@ -282,6 +297,7 @@
     let userShortcuts = [];      // 내 단축어 목록 [{label, text}]
     let originalPostContent = ""; // 조회 모드: 불러온 원본 글
     let isRoleSwapped = false;
+    let editingPost = null;      // 수정 중인 글 {id, hasPassword} (없으면 새 글 작성 모드)
 
     // ?id= 가 있으면 조회 모드, 없으면 작성 모드
     const params = new URLSearchParams(window.location.search);
@@ -386,6 +402,7 @@
       if (!user) {
         userShortcuts = [];
         $("my-posts-panel").style.display = "none";
+        if (editingPost) exitEditMode(true); // 로그아웃하면 수정 모드 종료
         renderShortcuts();
       } else if (!postId) {
         await loadShortcuts();
@@ -452,10 +469,14 @@
     // ============================================
     // 내 글 모아보기 (users/{uid}/myPosts 에서 최신 30개 → 읽기 최대 30회)
     // ============================================
-    $("my-posts-btn").onclick = async () => {
+    $("my-posts-btn").onclick = () => {
       const panel = $("my-posts-panel");
       if (panel.style.display !== "none") { panel.style.display = "none"; return; }
       panel.style.display = "block";
+      loadMyPosts();
+    };
+
+    async function loadMyPosts() {
       const listEl = $("my-posts-list"), status = $("my-posts-status");
       listEl.innerHTML = ""; status.textContent = "불러오는 중..."; status.className = "feedback";
       try {
@@ -464,8 +485,10 @@
         status.textContent = snap.empty ? "아직 발행한 글이 없어요. (로그인 상태에서 발행한 글만 모여요)" : "";
         snap.forEach((d) => {
           const data = d.data();
+          const item = document.createElement("div");
+          item.className = "my-post-item";
           const a = document.createElement("a");
-          a.className = "my-post-item";
+          a.className = "my-post-link";
           a.href = window.location.pathname + "?id=" + d.id;
           const prev = document.createElement("div");
           prev.className = "my-post-preview";
@@ -474,10 +497,134 @@
           date.className = "my-post-date";
           date.textContent = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString("ko-KR") : "";
           a.append(prev, date);
-          listEl.appendChild(a);
+
+          // 수정 / 삭제 버튼
+          const actions = document.createElement("div");
+          actions.className = "my-post-actions";
+          const editBtn = document.createElement("button");
+          editBtn.className = "btn-small"; editBtn.textContent = "수정";
+          editBtn.onclick = () => startEdit(d.id);
+          const delBtn = document.createElement("button");
+          delBtn.className = "btn-small btn-danger"; delBtn.textContent = "삭제";
+          delBtn.onclick = () => deletePost(d.id);
+          actions.append(editBtn, delBtn);
+
+          item.append(a, actions);
+          listEl.appendChild(item);
         });
       } catch (err) { console.error(err); status.textContent = "불러오지 못했어요."; status.className = "feedback error"; }
-    };
+    }
+
+    // ============================================
+    // 내 글 수정 / 삭제
+    // ============================================
+    // 수정 시작: 글을 불러와 작성 칸에 채우고 "수정 모드"로 전환
+    async function startEdit(id) {
+      try {
+        const snap = await getDoc(doc(db, "posts", id));
+        if (!snap.exists()) { alert("이미 삭제된 글이에요."); loadMyPosts(); return; }
+        const data = snap.data();
+        editingPost = { id, hasPassword: !!data.passwordHash };
+        $("ooc-editor").value = data.content;
+        $("adult-checkbox").checked = data.isAdult === true;
+        $("password-input").value = "";
+        $("password-input").placeholder = editingPost.hasPassword ? "비워두면 기존 비밀번호 유지" : "비워두면 누구나 열람 가능";
+        $("remove-pw-checkbox").checked = false;
+        $("remove-pw-row").style.display = editingPost.hasPassword ? "flex" : "none";
+        $("edit-banner").style.display = "flex";
+        $("publish-btn").textContent = "💾 수정 저장";
+        $("publish-status").textContent = "";
+        $("publish-result").classList.remove("show");
+        $("my-posts-panel").style.display = "none";
+        $("edit-banner").scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (err) { console.error(err); alert("글을 불러오지 못했어요."); }
+    }
+
+    // 수정 모드 끝내기 (clearEditor=true면 작성 칸도 비움)
+    function exitEditMode(clearEditor) {
+      editingPost = null;
+      $("edit-banner").style.display = "none";
+      $("remove-pw-row").style.display = "none";
+      $("remove-pw-checkbox").checked = false;
+      $("password-input").placeholder = "비워두면 누구나 열람 가능";
+      $("publish-btn").textContent = "🚀 발행하기";
+      if (clearEditor) {
+        $("ooc-editor").value = "";
+        $("adult-checkbox").checked = false;
+        $("password-input").value = "";
+      }
+    }
+    $("cancel-edit-btn").onclick = () => { exitEditMode(true); $("publish-status").textContent = ""; };
+    // 새 비밀번호를 입력하면 "비밀번호 없애기" 체크는 해제
+    $("password-input").oninput = () => { if ($("password-input").value) $("remove-pw-checkbox").checked = false; };
+    $("remove-pw-checkbox").onchange = () => { if ($("remove-pw-checkbox").checked) $("password-input").value = ""; };
+
+    // 수정 저장: 원본 글 + 내 글 요약본을 함께 업데이트
+    async function saveEdit() {
+      const content = $("ooc-editor").value.trim();
+      const isAdult = $("adult-checkbox").checked;
+      const newPassword = $("password-input").value.trim();
+      const removePw = $("remove-pw-checkbox").checked;
+      const status = $("publish-status");
+      if (content === "") { status.textContent = "내용을 입력해주세요."; status.className = "feedback error"; return; }
+
+      const id = editingPost.id;
+      $("publish-btn").disabled = true;
+      status.textContent = "저장 중..."; status.className = "feedback";
+      try {
+        const postUpdate = { content, isAdult, updatedAt: serverTimestamp() };
+        let hasPassword = editingPost.hasPassword; // 기본: 기존 비밀번호 유지
+        if (newPassword !== "") { postUpdate.passwordHash = await hashPassword(newPassword, id); hasPassword = true; }
+        else if (removePw) { postUpdate.passwordHash = deleteField(); hasPassword = false; }
+
+        const batch = writeBatch(db);
+        batch.update(doc(db, "posts", id), postUpdate);
+        batch.update(doc(db, "users", currentUser.uid, "myPosts", id), {
+          preview: content.replace(/\s+/g, " ").slice(0, 50),
+          isAdult,
+          hasPassword,
+        });
+        await batch.commit();
+
+        $("share-link").value = window.location.origin + window.location.pathname + "?id=" + id;
+        $("publish-result-title").textContent = "✅ 수정 완료! 기존 링크 그대로 쓰면 돼요.";
+        const meta = [];
+        if (isAdult) meta.push("🔞 성인물");
+        if (newPassword !== "") meta.push("🔒 새 비밀번호: " + newPassword);
+        else if (hasPassword) meta.push("🔒 기존 비밀번호 유지");
+        $("publish-meta").textContent = meta.join("  ·  ");
+        $("publish-result").classList.add("show");
+        exitEditMode(true);
+        status.textContent = "수정 완료!"; status.className = "feedback success";
+      } catch (err) {
+        console.error("수정 실패:", err);
+        status.textContent = err.message === "NO_CRYPTO" ? "이 브라우저에서는 비밀번호 기능을 쓸 수 없어요."
+          : err.code === "permission-denied" ? "수정 권한이 없어요. (내 글이 맞는지, 규칙을 업데이트했는지 확인해주세요)"
+          : err.code === "not-found" ? "이미 삭제된 글이에요."
+          : "수정 중 오류가 발생했어요.";
+        status.className = "feedback error";
+      } finally { $("publish-btn").disabled = false; }
+    }
+
+    // 삭제: 원본 글 + 내 글 요약본을 함께 삭제 (공유 링크로도 더 이상 열리지 않음)
+    async function deletePost(id) {
+      if (!confirm("이 글을 삭제할까요?\n공유한 링크로도 더 이상 볼 수 없고, 되돌릴 수 없어요.")) return;
+      const status = $("my-posts-status");
+      try {
+        const batch = writeBatch(db);
+        batch.delete(doc(db, "posts", id));
+        batch.delete(doc(db, "users", currentUser.uid, "myPosts", id));
+        await batch.commit();
+        if (editingPost && editingPost.id === id) exitEditMode(true);
+        await loadMyPosts();
+        flash(status, "삭제했어요.");
+        status.className = "feedback success";
+      } catch (err) {
+        console.error("삭제 실패:", err);
+        status.textContent = err.code === "permission-denied" ? "삭제 권한이 없어요. (규칙을 업데이트했는지 확인해주세요)" : "삭제 중 오류가 발생했어요.";
+        status.className = "feedback error";
+      }
+    }
 
     // ============================================
     // 작성 모드: 단축어 삽입 + 발행
@@ -494,6 +641,8 @@
     });
 
     $("publish-btn").onclick = async () => {
+      if (editingPost) return saveEdit(); // 수정 모드면 새로 발행하지 않고 기존 글을 수정
+      $("publish-result-title").textContent = "✅ 발행 완료! 아래 링크를 공유하세요.";
       const content = $("ooc-editor").value.trim();
       const isAdult = $("adult-checkbox").checked;
       const password = $("password-input").value.trim();
