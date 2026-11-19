@@ -120,20 +120,10 @@
       <button data-insert="이전 채팅에 영향받지 않음.">이전 채팅 미영향</button>
     </div>
 
-    <!-- 내 단축어: 로그인했을 때만 보임 -->
+    <!-- 내 단축어 버튼: 로그인했을 때만 보임 (추가/삭제는 별도 페이지에서) -->
     <div id="shortcut-section" style="display:none;">
       <div class="custom-buttons" id="custom-buttons"></div>
-      <button class="btn-link" id="toggle-manager-btn">⚙️ 내 단축어 관리</button>
-      <div class="panel" id="shortcut-manager" style="display:none; margin-top:8px;">
-        <h3>내 단축어 (최대 30개)</h3>
-        <div id="shortcut-list"></div>
-        <input class="text-input" id="sc-label" maxlength="20" placeholder="버튼 이름 (예: 키스신)" style="margin-top:10px;" />
-        <textarea class="text-input" id="sc-text" maxlength="500" placeholder="버튼을 눌렀을 때 입력될 내용"></textarea>
-        <div class="btn-row" style="margin-bottom:0;">
-          <button class="btn-primary" id="add-shortcut-btn">➕ 추가</button>
-          <span class="feedback" id="sc-status"></span>
-        </div>
-      </div>
+      <a class="btn-link" href="?page=shortcuts" style="display:inline-block; margin-bottom:12px;">⚙️ 내 단축어 관리 →</a>
     </div>
 
     <textarea id="ooc-editor" placeholder="여기에 OOC 명령어를 작성하세요..."></textarea>
@@ -161,6 +151,38 @@
       <div class="btn-row">
         <button class="btn-primary" id="copy-link-btn">🔗 링크 복사</button>
         <span class="feedback success" id="link-copy-feedback"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 화면 3: 내 단축어 관리 (?page=shortcuts) ============ -->
+  <div class="container" id="shortcut-view" style="display:none;">
+    <div class="brand-header">
+      <div class="logo">🍿</div>
+      <p class="brand-name">POPcorn.OOC</p>
+      <p class="tagline">간단하고 편리한 OOC 작성기, 팝콘입니다.</p>
+    </div>
+    <h1>⚙️ 내 단축어 관리</h1>
+    <div class="btn-row"><a href="./" style="text-decoration:none;"><button class="btn-secondary">← 작성하러 가기</button></a></div>
+
+    <!-- 로그아웃 상태일 때 -->
+    <div id="sc-page-out" style="display:none;">
+      <p style="color:#555;font-size:14px;">내 단축어는 로그인한 계정에서만 쓸 수 있어요.</p>
+      <button class="btn-primary" id="sc-open-login-btn">로그인</button>
+    </div>
+
+    <!-- 로그인 상태일 때 -->
+    <div id="sc-page-in" style="display:none;">
+      <div class="panel">
+        <h3>내 단축어 (최대 30개)</h3>
+        <div id="shortcut-list"></div>
+      </div>
+      <h3 style="font-size:15px;margin:16px 0 8px;">새 단축어 추가</h3>
+      <input class="text-input" id="sc-label" maxlength="20" placeholder="버튼 이름 (예: 키스신)" />
+      <textarea class="text-input" id="sc-text" maxlength="500" placeholder="버튼을 눌렀을 때 입력될 내용"></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" id="add-shortcut-btn">➕ 추가</button>
+        <span class="feedback" id="sc-status"></span>
       </div>
     </div>
   </div>
@@ -262,8 +284,11 @@
     let isRoleSwapped = false;
 
     // ?id= 가 있으면 조회 모드, 없으면 작성 모드
-    const postId = new URLSearchParams(window.location.search).get("id");
-    $("editor-view").style.display = postId ? "none" : "block";
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get("id");
+    const isShortcutPage = !postId && params.get("page") === "shortcuts";
+    $("editor-view").style.display = !postId && !isShortcutPage ? "block" : "none";
+    $("shortcut-view").style.display = isShortcutPage ? "block" : "none";
     $("viewer-view").style.display = postId ? "block" : "none";
     if (postId) loadPost(postId);
 
@@ -356,10 +381,11 @@
       $("bar-in").style.display = user ? "flex" : "none";
       $("shortcut-section").style.display = user ? "block" : "none";
       $("user-email").textContent = user ? user.email : "";
+      $("sc-page-out").style.display = user ? "none" : "block";
+      $("sc-page-in").style.display = user ? "block" : "none";
       if (!user) {
         userShortcuts = [];
         $("my-posts-panel").style.display = "none";
-        $("shortcut-manager").style.display = "none";
         renderShortcuts();
       } else if (!postId) {
         await loadShortcuts();
@@ -410,10 +436,7 @@
       if (userShortcuts.length === 0) list.textContent = "아직 없어요. 아래에서 추가해보세요.";
     }
 
-    $("toggle-manager-btn").onclick = () => {
-      const m = $("shortcut-manager");
-      m.style.display = m.style.display === "none" ? "block" : "none";
-    };
+    $("sc-open-login-btn").onclick = () => $("auth-overlay").classList.add("show");
     $("add-shortcut-btn").onclick = async () => {
       const label = $("sc-label").value.trim(), text = $("sc-text").value;
       const st = $("sc-status");
