@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>POPcorn</title>
+  <style>
+    /* ===== 기본 ===== */
+    * { box-sizing: border-box; }
+    /* 인앱 브라우저에서 화면이 옆으로 쏠리는 현상 방지 */
+    html, body { max-width: 100%; overflow-x: hidden; }
+    body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #f4f4f8; margin: 0; padding: 20px; }
+    .container { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.08); padding: 24px; width: 100%; max-width: 600px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 16px; color: #333; }
+    .brand-header { text-align: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
+    .brand-header .logo { font-size: 40px; line-height: 1; margin-bottom: 4px; }
+    .brand-header .brand-name { font-size: 28px; font-weight: 800; color: #4a3aff; margin: 0; }
+    .brand-header .tagline { font-size: 13px; color: #888; margin-top: 4px; }
+
+    /* ===== 버튼들 ===== */
+    .btn-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .btn-primary { padding: 10px 20px; border: none; border-radius: 8px; background: #4a3aff; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .btn-primary:hover { background: #3a2ad0; }
+    .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-secondary { padding: 10px 20px; border: 1px solid #4a3aff; border-radius: 8px; background: #fff; color: #4a3aff; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .btn-secondary.active { background: #4a3aff; color: #fff; }
+    .btn-small { padding: 6px 12px; border: 1px solid #ccc; border-radius: 6px; background: #fff; color: #444; font-size: 13px; cursor: pointer; }
+    .btn-link { border: none; background: none; color: #4a3aff; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 4px 0; }
+
+    /* 기본 단축어(보라) / 내 단축어(초록)를 색으로 구분 */
+    .quick-buttons, .custom-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .quick-buttons button { padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; background: #f0f0ff; color: #4a3aff; font-size: 14px; cursor: pointer; }
+    .custom-buttons button { padding: 8px 14px; border: 1px solid #bfe6cf; border-radius: 8px; background: #effaf3; color: #1f8a4c; font-size: 14px; cursor: pointer; }
+
+    textarea { width: 100%; min-height: 220px; padding: 12px; font-size: 15px; line-height: 1.5; border: 1px solid #ccc; border-radius: 8px; resize: vertical; font-family: inherit; margin-bottom: 16px; }
+    textarea:focus { outline: none; border-color: #4a3aff; }
+    textarea[readonly] { background: #fafafa; }
+    /* 아이폰은 16px 미만 입력창을 누르면 화면이 확대되어 16px로 맞춤 */
+    .text-input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; }
+    #sc-text { min-height: 70px; margin: 8px 0; }
+
+    .feedback { font-size: 14px; font-weight: bold; }
+    .feedback.success { color: #2ecc71; }
+    .feedback.error { color: #e74c3c; }
+    .option-box { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .check-label { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; line-height: 1.4; cursor: pointer; }
+    .check-label input { width: 20px; height: 20px; flex-shrink: 0; margin: 0; }
+    .password-row { margin-top: 12px; }
+    .password-row label { display: block; font-size: 14px; color: #555; margin-bottom: 6px; }
+    #publish-result { display: none; margin-top: 16px; padding: 12px; background: #f0f0ff; border: 1px solid #d0d0ff; border-radius: 8px; }
+    #publish-result.show { display: block; }
+    #publish-meta { margin: 6px 0; font-size: 14px; color: #555; word-break: break-all; }
+    #share-link { width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; margin: 8px 0; }
+
+    /* ===== 상단 로그인 바 / 내 글 / 단축어 관리 ===== */
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; font-size: 13px; color: #888; }
+    .topbar-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .user-email { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #555; }
+    .panel { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+    .panel h3 { font-size: 15px; margin: 0 0 8px; }
+    .my-post-item { display: block; padding: 10px; margin-bottom: 6px; background: #fff; border: 1px solid #eee; border-radius: 8px; text-decoration: none; color: #333; }
+    .my-post-preview { font-size: 14px; word-break: break-all; }
+    .my-post-date { font-size: 12px; color: #999; margin-top: 2px; }
+    .sc-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+    .sc-item span { word-break: break-all; }
+
+    /* ===== 팝업(성인 확인 / 비밀번호 / 로그인) ===== */
+    .gate-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(20,20,40,.88); align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+    .gate-overlay.show { display: flex; }
+    .gate-card { background: #fff; border-radius: 12px; padding: 24px; width: 100%; max-width: 420px; }
+    .gate-card h2 { font-size: 18px; margin: 0 0 12px; }
+    .gate-card p { font-size: 14px; line-height: 1.5; color: #555; margin: 0 0 16px; }
+    .gate-card .btn-row { margin: 16px 0 0; }
+    .gate-error { color: #e74c3c; font-size: 14px; font-weight: bold; margin-top: 8px; min-height: 18px; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============ 화면 1: 작성(메인) ============ -->
+  <div class="container" id="editor-view">
+
+    <!-- 로그인 상태에 따라 둘 중 하나만 보임 -->
+    <div class="topbar">
+      <div class="topbar-group" id="bar-out">
+        <span>로그인하면 내 글 모아보기·내 단축어를 쓸 수 있어요</span>
+        <button class="btn-small" id="open-login-btn">로그인</button>
+      </div>
+      <div class="topbar-group" id="bar-in" style="display:none;">
+        <span class="user-email" id="user-email"></span>
+        <button class="btn-small" id="my-posts-btn">📁 내 글</button>
+        <button class="btn-small" id="logout-btn">로그아웃</button>
+      </div>
+    </div>
+
+    <div class="brand-header">
+      <div class="logo">🍿</div>
+      <p class="brand-name">POPcorn.OOC</p>
+      <p class="tagline">간단하고 편리한 OOC 작성기, 팝콘입니다.</p>
+    </div>
+
+    <!-- 내 글 목록 (📁 내 글 버튼으로 열고 닫음) -->
+    <div class="panel" id="my-posts-panel" style="display:none;">
+      <h3>📁 내 글 (최신 30개)</h3>
+      <div id="my-posts-list"></div>
+      <div class="feedback" id="my-posts-status"></div>
+    </div>
+
+    <h1>✏️ OOC 명령어 작성기</h1>
+
+    <!-- 기본 단축어: 누구에게나 보임 -->
+    <div class="quick-buttons">
+      <button data-insert="{{char}}">{{char}}</button>
+      <button data-insert="{{user}}">{{user}}</button>
+      <button data-insert="NPC: ">NPC:</button>
+      <button data-insert="PC: ">PC:</button>
+      <button data-insert="OOC: ">OOC:</button>
+      <button data-insert="현재 에피소드를 종료. 완전히 별개의 새로운 에피소드 시작.">현재 에피소드 종료</button>
+      <button data-insert="현재 에피소드 종료. 완전히 별개의 어나더 에피소드 시작.">au 에피소드</button>
+      <button data-insert="이전 채팅에 영향받지 않음.">이전 채팅 미영향</button>
+    </div>
+
+    <!-- 내 단축어: 로그인했을 때만 보임 -->
+    <div id="shortcut-section" style="display:none;">
+      <div class="custom-buttons" id="custom-buttons"></div>
+      <button class="btn-link" id="toggle-manager-btn">⚙️ 내 단축어 관리</button>
+      <div class="panel" id="shortcut-manager" style="display:none; margin-top:8px;">
+        <h3>내 단축어 (최대 30개)</h3>
+        <div id="shortcut-list"></div>
+        <input class="text-input" id="sc-label" maxlength="20" placeholder="버튼 이름 (예: 키스신)" style="margin-top:10px;" />
+        <textarea class="text-input" id="sc-text" maxlength="500" placeholder="버튼을 눌렀을 때 입력될 내용"></textarea>
+        <div class="btn-row" style="margin-bottom:0;">
+          <button class="btn-primary" id="add-shortcut-btn">➕ 추가</button>
+          <span class="feedback" id="sc-status"></span>
+        </div>
+      </div>
+    </div>
+
+    <textarea id="ooc-editor" placeholder="여기에 OOC 명령어를 작성하세요..."></textarea>
+
+    <div class="option-box">
+      <label class="check-label">
+        <input type="checkbox" id="adult-checkbox" />
+        <span>🔞 성인물 (열람 전에 확인 팝업이 표시돼요)</span>
+      </label>
+      <div class="password-row">
+        <label for="password-input">🔒 비밀번호 (선택)</label>
+        <input type="text" id="password-input" class="text-input" placeholder="비워두면 누구나 열람 가능" maxlength="30" autocomplete="off" />
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="publish-btn">🚀 발행하기</button>
+      <span class="feedback" id="publish-status"></span>
+    </div>
+
+    <div id="publish-result">
+      <div>✅ 발행 완료! 아래 링크를 공유하세요.</div>
+      <div id="publish-meta"></div>
+      <input type="text" id="share-link" readonly />
+      <div class="btn-row">
+        <button class="btn-primary" id="copy-link-btn">🔗 링크 복사</button>
+        <span class="feedback success" id="link-copy-feedback"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 화면 2: 조회(공유 링크) ============ -->
+  <div class="container" id="viewer-view" style="display:none;">
+    <div class="brand-header">
+      <div class="logo">🍿</div>
+      <p class="brand-name">POPcorn.OOC</p>
+      <p class="tagline">간단하고 편리한 OOC 작성기, 팝콘입니다.</p>
+    </div>
+    <h1>📄 공유된 OOC 명령어</h1>
+    <p id="viewer-loading" style="color:#888;font-size:14px;">불러오는 중...</p>
+
+    <!-- 팝업을 모두 통과하기 전까지 숨김 -->
+    <div id="viewer-main" style="display:none;">
+      <textarea id="viewer-content" readonly></textarea>
+      <div class="btn-row"><button class="btn-secondary" id="swap-role-btn">🔄 {{user}} ↔ {{char}} 바꾸기</button></div>
+      <div class="btn-row">
+        <button class="btn-primary" id="copy-content-btn">📋 복사하기</button>
+        <span class="feedback success" id="content-copy-feedback"></span>
+      </div>
+    </div>
+    <div class="btn-row"><a href="./" style="text-decoration:none;"><button class="btn-primary">✏️ 나도 작성하기</button></a></div>
+    <div class="feedback error" id="viewer-error"></div>
+  </div>
+
+  <!-- ============ 팝업들 ============ -->
+  <!-- 열람 전: 성인 확인 / 비밀번호 -->
+  <div class="gate-overlay" id="gate-overlay">
+    <div class="gate-card" id="adult-panel" style="display:none;">
+      <h2>🔞 성인 대상 콘텐츠</h2>
+      <p>이 글에는 성인 대상 내용이 포함되어 있어요. 만 19세 이상만 열람할 수 있어요.</p>
+      <label class="check-label"><input type="checkbox" id="adult-agree-checkbox" /><span>저는 만 19세 이상이며, 열람에 동의합니다.</span></label>
+      <div class="btn-row">
+        <button class="btn-primary" id="adult-enter-btn" disabled>입장하기</button>
+        <button class="btn-secondary gate-back-btn">돌아가기</button>
+      </div>
+    </div>
+    <div class="gate-card" id="password-panel" style="display:none;">
+      <h2>🔒 비밀번호가 필요한 글</h2>
+      <p>작성자에게 받은 비밀번호를 입력해주세요.</p>
+      <input type="text" id="gate-password-input" class="text-input" placeholder="비밀번호" autocomplete="off" />
+      <div class="gate-error" id="gate-password-error"></div>
+      <div class="btn-row">
+        <button class="btn-primary" id="password-submit-btn">확인</button>
+        <button class="btn-secondary gate-back-btn">돌아가기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로그인 / 회원가입 -->
+  <div class="gate-overlay" id="auth-overlay">
+    <div class="gate-card">
+      <h2>🔐 로그인 / 회원가입</h2>
+      <p>이메일과 비밀번호(6자 이상)로 가입해요. 처음이면 "회원가입"을 눌러주세요.</p>
+      <input type="email" id="auth-email" class="text-input" placeholder="이메일" autocomplete="email" />
+      <input type="password" id="auth-password" class="text-input" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" style="margin-top:8px;" />
+      <div class="gate-error" id="auth-error"></div>
+      <div class="btn-row">
+        <button class="btn-primary" id="auth-login-btn">로그인</button>
+        <button class="btn-secondary" id="auth-signup-btn">회원가입</button>
+        <button class="btn-link" id="auth-reset-btn">비밀번호 재설정</button>
+        <button class="btn-link" id="auth-close-btn">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import {
+      getFirestore, collection, doc, getDoc, getDocs, setDoc, writeBatch,
+      query, orderBy, limit, serverTimestamp,
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+    import {
+      getAuth, onAuthStateChanged, createUserWithEmailAndPassword,
+      signInWithEmailAndPassword, signOut, sendPasswordResetEmail,
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+    // 새 Firebase 프로젝트(oocnetrealese) 설정값
+    const firebaseConfig = {
+      apiKey: "AIzaSyA6RzzQpUim0lZJCiOF1qd9rvSKdGqHNhA",
+      authDomain: "oocnetrealese.firebaseapp.com",
+      projectId: "oocnetrealese",
+      storageBucket: "oocnetrealese.firebasestorage.app",
+      messagingSenderId: "408692210635",
+      appId: "1:408692210635:web:fa40257dd48a4145db144e",
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const $ = (id) => document.getElementById(id); // 요소 찾기 줄임말
+
+    // 현재 상태값
+    let currentUser = null;      // 로그인한 사용자 (없으면 null)
+    let userShortcuts = [];      // 내 단축어 목록 [{label, text}]
+    let originalPostContent = ""; // 조회 모드: 불러온 원본 글
+    let isRoleSwapped = false;
+
+    // ?id= 가 있으면 조회 모드, 없으면 작성 모드
+    const postId = new URLSearchParams(window.location.search).get("id");
+    $("editor-view").style.display = postId ? "none" : "block";
+    $("viewer-view").style.display = postId ? "block" : "none";
+    if (postId) loadPost(postId);
+
+    // ============================================
+    // 공용 함수
+    // ============================================
+    // 클립보드 복사 (인앱 브라우저 호환용: execCommand 우선, 실패 시 최신 API)
+    function copyTextRobust(text) {
+      return new Promise((resolve, reject) => {
+        try {
+          const t = document.createElement("textarea");
+          t.value = text;
+          t.style.cssText = "position:fixed;left:-9999px;top:0;";
+          document.body.appendChild(t);
+          t.focus(); t.select(); t.setSelectionRange(0, text.length);
+          const ok = document.execCommand("copy");
+          document.body.removeChild(t);
+          if (ok) resolve(); else throw new Error("copy 실패");
+        } catch (err) {
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(resolve).catch(reject);
+          else reject(err);
+        }
+      });
+    }
+    function flash(el, msg) { el.textContent = msg; setTimeout(() => (el.textContent = ""), 1500); }
+
+    // 비밀번호 → SHA-256 해시 (글 ID를 섞어서 글마다 다른 해시). https/localhost에서만 동작
+    async function hashPassword(password, salt) {
+      if (!window.crypto || !window.crypto.subtle) throw new Error("NO_CRYPTO");
+      const buf = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(salt + ":" + password));
+      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    // ============================================
+    // 로그인 / 회원가입 / 로그아웃
+    // ============================================
+    const authMessages = {
+      "auth/invalid-email": "이메일 형식이 올바르지 않아요.",
+      "auth/email-already-in-use": "이미 가입된 이메일이에요. 로그인을 눌러주세요.",
+      "auth/weak-password": "비밀번호는 6자 이상이어야 해요.",
+      "auth/invalid-credential": "이메일 또는 비밀번호가 맞지 않아요.",
+      "auth/user-not-found": "가입되지 않은 이메일이에요.",
+      "auth/wrong-password": "비밀번호가 맞지 않아요.",
+      "auth/too-many-requests": "시도가 너무 많아요. 잠시 후 다시 해주세요.",
+      "auth/network-request-failed": "네트워크 오류예요. 연결을 확인해주세요.",
+    };
+
+    async function doAuth(isSignup) {
+      $("auth-error").style.color = ""; // 이전 성공 안내(초록색)가 남지 않게 초기화
+      const email = $("auth-email").value.trim();
+      const pw = $("auth-password").value;
+      if (!email || !pw) { $("auth-error").textContent = "이메일과 비밀번호를 입력해주세요."; return; }
+      try {
+        if (isSignup) await createUserWithEmailAndPassword(auth, email, pw);
+        else await signInWithEmailAndPassword(auth, email, pw);
+        $("auth-password").value = "";
+        $("auth-error").textContent = "";
+        $("auth-overlay").classList.remove("show"); // 성공하면 팝업 닫기
+      } catch (err) {
+        $("auth-error").textContent = authMessages[err.code] || "오류가 발생했어요. (" + err.code + ")";
+      }
+    }
+    $("open-login-btn").onclick = () => $("auth-overlay").classList.add("show");
+    $("auth-close-btn").onclick = () => $("auth-overlay").classList.remove("show");
+    $("auth-login-btn").onclick = () => doAuth(false);
+    $("auth-signup-btn").onclick = () => doAuth(true);
+    $("auth-password").onkeydown = (e) => { if (e.key === "Enter") doAuth(false); };
+    $("logout-btn").onclick = () => signOut(auth);
+
+    // 비밀번호 재설정: 입력한 이메일로 재설정 링크가 담긴 메일을 보냄
+    // (보안상 가입 여부와 관계없이 성공 문구가 나오고, 가입된 이메일일 때만 메일이 도착함)
+    $("auth-reset-btn").onclick = async () => {
+      const email = $("auth-email").value.trim();
+      const msg = $("auth-error");
+      msg.style.color = "";
+      if (!email) { msg.textContent = "위 이메일 칸에 가입한 이메일을 먼저 입력해주세요."; return; }
+      try {
+        await sendPasswordResetEmail(auth, email);
+        msg.style.color = "#2ecc71"; // 성공은 초록색으로 표시
+        msg.textContent = "재설정 메일을 보냈어요. 안 오면 스팸함도 확인해주세요.";
+      } catch (err) {
+        msg.textContent = authMessages[err.code] || "메일을 보내지 못했어요. (" + err.code + ")";
+      }
+    };
+
+    // 로그인 상태가 바뀔 때마다 자동 실행 (새로고침해도 로그인 유지됨)
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user;
+      $("bar-out").style.display = user ? "none" : "flex";
+      $("bar-in").style.display = user ? "flex" : "none";
+      $("shortcut-section").style.display = user ? "block" : "none";
+      $("user-email").textContent = user ? user.email : "";
+      if (!user) {
+        userShortcuts = [];
+        $("my-posts-panel").style.display = "none";
+        $("shortcut-manager").style.display = "none";
+        renderShortcuts();
+      } else if (!postId) {
+        await loadShortcuts();
+      }
+    });
+
+    // ============================================
+    // 내 단축어 (users/{uid} 문서의 shortcuts 목록. 읽기 1회로 불러옴)
+    // ============================================
+    async function loadShortcuts() {
+      try {
+        const snap = await getDoc(doc(db, "users", currentUser.uid));
+        userShortcuts = snap.exists() && Array.isArray(snap.data().shortcuts) ? snap.data().shortcuts : [];
+      } catch (err) { console.error("단축어 불러오기 실패:", err); userShortcuts = []; }
+      renderShortcuts();
+    }
+
+    // 목록 전체를 저장 (추가/삭제 모두 이 함수 사용)
+    async function saveShortcuts(newList) {
+      await setDoc(doc(db, "users", currentUser.uid), { shortcuts: newList });
+      userShortcuts = newList;
+      renderShortcuts();
+    }
+
+    // 내 단축어 버튼 + 관리 목록을 화면에 그림 (textContent 사용 → 입력값이 코드로 실행되지 않음)
+    function renderShortcuts() {
+      const btns = $("custom-buttons"), list = $("shortcut-list");
+      btns.innerHTML = ""; list.innerHTML = "";
+      userShortcuts.forEach((sc, i) => {
+        const b = document.createElement("button");
+        b.textContent = sc.label;
+        b.onclick = () => insertAtCursor(sc.text);
+        btns.appendChild(b);
+
+        const row = document.createElement("div");
+        row.className = "sc-item";
+        const name = document.createElement("span");
+        name.textContent = sc.label + " → " + sc.text.slice(0, 30) + (sc.text.length > 30 ? "…" : "");
+        const del = document.createElement("button");
+        del.className = "btn-small"; del.textContent = "삭제";
+        del.onclick = async () => {
+          try { await saveShortcuts(userShortcuts.filter((_, idx) => idx !== i)); }
+          catch (err) { $("sc-status").textContent = "삭제 실패"; $("sc-status").className = "feedback error"; }
+        };
+        row.append(name, del);
+        list.appendChild(row);
+      });
+      if (userShortcuts.length === 0) list.textContent = "아직 없어요. 아래에서 추가해보세요.";
+    }
+
+    $("toggle-manager-btn").onclick = () => {
+      const m = $("shortcut-manager");
+      m.style.display = m.style.display === "none" ? "block" : "none";
+    };
+    $("add-shortcut-btn").onclick = async () => {
+      const label = $("sc-label").value.trim(), text = $("sc-text").value;
+      const st = $("sc-status");
+      if (!label || !text.trim()) { st.textContent = "이름과 내용을 모두 입력해주세요."; st.className = "feedback error"; return; }
+      if (userShortcuts.length >= 30) { st.textContent = "단축어는 최대 30개예요."; st.className = "feedback error"; return; }
+      try {
+        await saveShortcuts([...userShortcuts, { label, text }]);
+        $("sc-label").value = ""; $("sc-text").value = "";
+        st.textContent = "추가됨!"; st.className = "feedback success";
+      } catch (err) { console.error(err); st.textContent = "저장 실패 (규칙을 확인해주세요)"; st.className = "feedback error"; }
+    };
+
+    // ============================================
+    // 내 글 모아보기 (users/{uid}/myPosts 에서 최신 30개 → 읽기 최대 30회)
+    // ============================================
+    $("my-posts-btn").onclick = async () => {
+      const panel = $("my-posts-panel");
+      if (panel.style.display !== "none") { panel.style.display = "none"; return; }
+      panel.style.display = "block";
+      const listEl = $("my-posts-list"), status = $("my-posts-status");
+      listEl.innerHTML = ""; status.textContent = "불러오는 중..."; status.className = "feedback";
+      try {
+        const q = query(collection(db, "users", currentUser.uid, "myPosts"), orderBy("createdAt", "desc"), limit(30));
+        const snap = await getDocs(q);
+        status.textContent = snap.empty ? "아직 발행한 글이 없어요. (로그인 상태에서 발행한 글만 모여요)" : "";
+        snap.forEach((d) => {
+          const data = d.data();
+          const a = document.createElement("a");
+          a.className = "my-post-item";
+          a.href = window.location.pathname + "?id=" + d.id;
+          const prev = document.createElement("div");
+          prev.className = "my-post-preview";
+          prev.textContent = (data.isAdult ? "🔞 " : "") + (data.hasPassword ? "🔒 " : "") + data.preview;
+          const date = document.createElement("div");
+          date.className = "my-post-date";
+          date.textContent = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString("ko-KR") : "";
+          a.append(prev, date);
+          listEl.appendChild(a);
+        });
+      } catch (err) { console.error(err); status.textContent = "불러오지 못했어요."; status.className = "feedback error"; }
+    };
+
+    // ============================================
+    // 작성 모드: 단축어 삽입 + 발행
+    // ============================================
+    function insertAtCursor(text) {
+      const ed = $("ooc-editor");
+      const s = ed.selectionStart, e = ed.selectionEnd;
+      ed.value = ed.value.substring(0, s) + text + ed.value.substring(e);
+      ed.setSelectionRange(s + text.length, s + text.length);
+      ed.focus();
+    }
+    document.querySelectorAll(".quick-buttons button").forEach((btn) => {
+      btn.onclick = () => insertAtCursor(btn.getAttribute("data-insert"));
+    });
+
+    $("publish-btn").onclick = async () => {
+      const content = $("ooc-editor").value.trim();
+      const isAdult = $("adult-checkbox").checked;
+      const password = $("password-input").value.trim();
+      const status = $("publish-status");
+      if (content === "") { status.textContent = "내용을 입력해주세요."; status.className = "feedback error"; return; }
+
+      $("publish-btn").disabled = true;
+      status.textContent = "발행 중..."; status.className = "feedback";
+      try {
+        const newRef = doc(collection(db, "posts")); // 글 ID를 먼저 만들어둠
+        const postData = { content, createdAt: serverTimestamp(), isAdult };
+        if (password !== "") postData.passwordHash = await hashPassword(password, newRef.id);
+
+        // batch: 여러 저장을 "전부 성공 or 전부 실패"로 묶음
+        const batch = writeBatch(db);
+        batch.set(newRef, postData);
+        if (currentUser) { // 로그인 상태면 내 글 목록에도 요약본 저장
+          batch.set(doc(db, "users", currentUser.uid, "myPosts", newRef.id), {
+            preview: content.replace(/\s+/g, " ").slice(0, 50),
+            createdAt: serverTimestamp(),
+            isAdult,
+            hasPassword: password !== "",
+          });
+        }
+        await batch.commit();
+
+        $("share-link").value = window.location.origin + window.location.pathname + "?id=" + newRef.id;
+        const meta = [];
+        if (isAdult) meta.push("🔞 성인물");
+        if (password !== "") meta.push("🔒 비밀번호: " + password);
+        if (currentUser) meta.push("📁 내 글에 저장됨");
+        $("publish-meta").textContent = meta.join("  ·  ");
+        $("publish-result").classList.add("show");
+        status.textContent = "발행 완료!"; status.className = "feedback success";
+      } catch (err) {
+        console.error("발행 실패:", err);
+        status.textContent = err.message === "NO_CRYPTO" ? "이 브라우저에서는 비밀번호 기능을 쓸 수 없어요."
+          : err.code === "permission-denied" ? "저장 권한 오류예요. Firestore 규칙을 확인해주세요."
+          : "발행 중 오류가 발생했어요.";
+        status.className = "feedback error";
+      } finally { $("publish-btn").disabled = false; }
+    };
+    $("copy-link-btn").onclick = () =>
+      copyTextRobust($("share-link").value).then(() => flash($("link-copy-feedback"), "복사됨!")).catch(() => alert("복사에 실패했어요."));
+
+    // ============================================
+    // 조회 모드: 글 불러오기 → (성인 확인) → (비밀번호) → 본문 공개
+    // ============================================
+    async function loadPost(id) {
+      try {
+        const snap = await getDoc(doc(db, "posts", id));
+        $("viewer-loading").style.display = "none";
+        if (!snap.exists()) { $("viewer-error").textContent = "글을 찾을 수 없어요. 링크가 정확한지 확인해주세요."; return; }
+        const data = snap.data();
+        originalPostContent = data.content; // 팝업 통과 전엔 화면에 넣지 않음
+        if (data.isAdult === true) await showAdultGate();
+        if (data.passwordHash) await showPasswordGate(id, data.passwordHash);
+        $("gate-overlay").classList.remove("show");
+        $("viewer-content").value = originalPostContent;
+        $("viewer-main").style.display = "block";
+      } catch (err) {
+        console.error("글 불러오기 실패:", err);
+        $("viewer-loading").style.display = "none";
+        $("viewer-error").textContent = "글을 불러오는 중 오류가 발생했어요.";
+      }
+    }
+
+    function showAdultGate() {
+      return new Promise((resolve) => {
+        $("gate-overlay").classList.add("show");
+        $("password-panel").style.display = "none";
+        $("adult-panel").style.display = "block";
+        $("adult-agree-checkbox").checked = false;
+        $("adult-enter-btn").disabled = true;
+        $("adult-enter-btn").onclick = () => { $("adult-panel").style.display = "none"; resolve(); };
+      });
+    }
+    $("adult-agree-checkbox").onchange = () => { $("adult-enter-btn").disabled = !$("adult-agree-checkbox").checked; };
+
+    function showPasswordGate(id, expectedHash) {
+      return new Promise((resolve) => {
+        $("gate-overlay").classList.add("show");
+        $("adult-panel").style.display = "none";
+        $("password-panel").style.display = "block";
+        $("gate-password-input").value = "";
+        $("gate-password-error").textContent = "";
+        const tryUnlock = async () => {
+          const input = $("gate-password-input").value.trim();
+          if (input === "") { $("gate-password-error").textContent = "비밀번호를 입력해주세요."; return; }
+          try {
+            if ((await hashPassword(input, id)) === expectedHash) { $("password-panel").style.display = "none"; resolve(); }
+            else $("gate-password-error").textContent = "비밀번호가 맞지 않아요.";
+          } catch (err) { $("gate-password-error").textContent = "이 브라우저에서는 확인할 수 없어요. 다른 브라우저로 열어주세요."; }
+        };
+        $("password-submit-btn").onclick = tryUnlock;
+        $("gate-password-input").onkeydown = (e) => { if (e.key === "Enter") tryUnlock(); };
+        $("gate-password-input").focus();
+      });
+    }
+    document.querySelectorAll(".gate-back-btn").forEach((b) => { b.onclick = () => (window.location.href = window.location.pathname); });
+
+    // {{user}} ↔ {{char}} 맞바꾸기 (임시 문자열을 거쳐야 서로 꼬이지 않음)
+    function swapUserAndChar(text) {
+      const p = "%%%POPCORN_SWAP_TEMP%%%";
+      return text.split("{{user}}").join(p).split("{{char}}").join("{{user}}").split(p).join("{{char}}");
+    }
+    $("swap-role-btn").onclick = () => {
+      isRoleSwapped = !isRoleSwapped;
+      $("viewer-content").value = isRoleSwapped ? swapUserAndChar(originalPostContent) : originalPostContent;
+      $("swap-role-btn").classList.toggle("active", isRoleSwapped);
+      $("swap-role-btn").textContent = isRoleSwapped ? "↩️ 원래대로 되돌리기" : "🔄 {{user}} ↔ {{char}} 바꾸기";
+    };
+    $("copy-content-btn").onclick = () =>
+      copyTextRobust($("viewer-content").value).then(() => flash($("content-copy-feedback"), "복사됨!")).catch(() => alert("복사에 실패했어요."));
+  </script>
+</body>
+</html>
