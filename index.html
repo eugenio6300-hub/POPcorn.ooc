@@ -4,36 +4,60 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>POPcorn</title>
+  <!-- 모드 판별: 화면이 그려지기 전에 먼저 실행해야 색/글자가 깜빡이지 않음 -->
+  <!-- ?p=글ID 또는 ?mode=prompt → POPcorn.prompt / 그 외 → POPcorn.OOC -->
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      if (q.get("p") || (!q.get("id") && q.get("mode") === "prompt")) {
+        document.documentElement.classList.add("mode-prompt");
+        document.title = "POPcorn.prompt";
+      } else {
+        document.title = "POPcorn.OOC";
+      }
+    })();
+  </script>
   <style>
+    /* ===== 모드별 색 (OOC = 보라 / prompt = 주황) ===== */
+    :root { --accent: #4a3aff; --accent-dark: #3a2ad0; --accent-soft: #f0f0ff; --accent-border: #d0d0ff; --page-bg: #f4f4f8; }
+    html.mode-prompt { --accent: #e8590c; --accent-dark: #c2410c; --accent-soft: #fff4e6; --accent-border: #ffd8a8; --page-bg: #faf5f0; }
+    /* 모드별로 보이는 요소 구분 */
+    html.mode-prompt .ooc-only { display: none !important; }
+    html:not(.mode-prompt) .prompt-only { display: none !important; }
+
     /* ===== 기본 ===== */
     * { box-sizing: border-box; }
     /* 인앱 브라우저에서 화면이 옆으로 쏠리는 현상 방지 */
     html, body { max-width: 100%; overflow-x: hidden; }
-    body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: #f4f4f8; margin: 0; padding: 20px; }
+    body { font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: var(--page-bg); margin: 0; padding: 20px; }
     .container { background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.08); padding: 24px; width: 100%; max-width: 600px; margin: 0 auto; }
     h1 { font-size: 20px; margin: 0 0 16px; color: #333; }
     .brand-header { text-align: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #eee; }
     .brand-header .logo { font-size: 40px; line-height: 1; margin-bottom: 4px; }
-    .brand-header .brand-name { font-size: 28px; font-weight: 800; color: #4a3aff; margin: 0; }
+    .brand-header .brand-name { font-size: 28px; font-weight: 800; color: var(--accent); margin: 0; }
     .brand-header .tagline { font-size: 13px; color: #888; margin-top: 4px; }
+    /* 누르면 모드가 바뀌는 팝콘 버튼 */
+    .logo-btn { border: none; background: none; padding: 4px 8px; cursor: pointer; border-radius: 12px; transition: transform .15s; }
+    .logo-btn:hover { background: var(--accent-soft); transform: scale(1.1); }
+    .brand-header .mode-hint { font-size: 12px; color: #aaa; margin: 6px 0 0; }
 
     /* ===== 버튼들 ===== */
     .btn-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-    .btn-primary { padding: 10px 20px; border: none; border-radius: 8px; background: #4a3aff; color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; }
-    .btn-primary:hover { background: #3a2ad0; }
+    .btn-primary { padding: 10px 20px; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .btn-primary:hover { background: var(--accent-dark); }
     .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
-    .btn-secondary { padding: 10px 20px; border: 1px solid #4a3aff; border-radius: 8px; background: #fff; color: #4a3aff; font-size: 15px; font-weight: bold; cursor: pointer; }
-    .btn-secondary.active { background: #4a3aff; color: #fff; }
+    .btn-secondary { padding: 10px 20px; border: 1px solid var(--accent); border-radius: 8px; background: #fff; color: var(--accent); font-size: 15px; font-weight: bold; cursor: pointer; }
+    .btn-secondary.active { background: var(--accent); color: #fff; }
     .btn-small { padding: 6px 12px; border: 1px solid #ccc; border-radius: 6px; background: #fff; color: #444; font-size: 13px; cursor: pointer; }
-    .btn-link { border: none; background: none; color: #4a3aff; font-size: 14px; text-decoration: underline; cursor: pointer; padding: 4px 0; }
+    .btn-link { border: none; background: none; color: var(--accent); font-size: 14px; text-decoration: underline; cursor: pointer; padding: 4px 0; }
 
     /* 기본 단축어(보라) / 내 단축어(초록)를 색으로 구분 */
     .quick-buttons, .custom-buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
-    .quick-buttons button { padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; background: #f0f0ff; color: #4a3aff; font-size: 14px; cursor: pointer; }
+    .quick-buttons button { padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-size: 14px; cursor: pointer; }
     .custom-buttons button { padding: 8px 14px; border: 1px solid #bfe6cf; border-radius: 8px; background: #effaf3; color: #1f8a4c; font-size: 14px; cursor: pointer; }
 
     textarea { width: 100%; min-height: 220px; padding: 12px; font-size: 15px; line-height: 1.5; border: 1px solid #ccc; border-radius: 8px; resize: vertical; font-family: inherit; margin-bottom: 16px; }
-    textarea:focus { outline: none; border-color: #4a3aff; }
+    textarea:focus { outline: none; border-color: var(--accent); }
     textarea[readonly] { background: #fafafa; }
     /* 아이폰은 16px 미만 입력창을 누르면 화면이 확대되어 16px로 맞춤 */
     .text-input { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; }
@@ -45,9 +69,17 @@
     .option-box { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
     .check-label { display: flex; align-items: flex-start; gap: 8px; font-size: 15px; line-height: 1.4; cursor: pointer; }
     .check-label input { width: 20px; height: 20px; flex-shrink: 0; margin: 0; }
+    /* prompt 모드: 제목 / 예시 이미지 */
+    .field-label { display: block; font-size: 14px; color: #555; margin-bottom: 6px; }
+    .field-hint { font-size: 12px; color: #999; margin: 6px 0 0; line-height: 1.4; }
+    .file-btn { display: inline-block; }
+    .thumb-preview { display: block; max-width: 100%; max-height: 240px; border-radius: 8px; margin-top: 8px; border: 1px solid #eee; }
+    .viewer-title { font-size: 20px; font-weight: 800; color: #333; margin: 0 0 12px; word-break: break-all; }
+    .viewer-thumb { display: block; max-width: 100%; border-radius: 10px; margin: 0 auto 16px; border: 1px solid #eee; }
+    .my-post-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #eee; }
     .password-row { margin-top: 12px; }
     .password-row label { display: block; font-size: 14px; color: #555; margin-bottom: 6px; }
-    #publish-result { display: none; margin-top: 16px; padding: 12px; background: #f0f0ff; border: 1px solid #d0d0ff; border-radius: 8px; }
+    #publish-result { display: none; margin-top: 16px; padding: 12px; background: var(--accent-soft); border: 1px solid var(--accent-border); border-radius: 8px; }
     #publish-result.show { display: block; }
     #publish-meta { margin: 6px 0; font-size: 14px; color: #555; word-break: break-all; }
     #share-link { width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 6px; margin: 8px 0; }
@@ -98,22 +130,28 @@
     </div>
 
     <div class="brand-header">
-      <div class="logo">🍿</div>
-      <p class="brand-name">POPcorn.OOC</p>
-      <p class="tagline">간단하고 편리한 OOC 작성기, 팝콘입니다.</p>
+      <button type="button" class="logo logo-btn mode-toggle-btn" title="모드 전환">🍿</button>
+      <p class="brand-name"><span class="ooc-only">POPcorn.OOC</span><span class="prompt-only">POPcorn.prompt</span></p>
+      <p class="tagline"><span class="ooc-only">간단하고 편리한 OOC 작성기, 팝콘입니다.</span><span class="prompt-only">간단하고 편리한 NAI 프롬프트 공유기, 팝콘입니다.</span></p>
+      <p class="mode-hint"><span class="ooc-only">🍿를 누르면 POPcorn.prompt로 바뀌어요</span><span class="prompt-only">🍿를 누르면 POPcorn.OOC로 바뀌어요</span></p>
     </div>
 
-    <!-- 내 글 목록 (📁 내 글 버튼으로 열고 닫음) -->
+    <!-- 내 글 목록 (📁 내 글 버튼으로 열고 닫음) — 모드별로 따로 저장됨 -->
     <div class="panel" id="my-posts-panel" style="display:none;">
-      <h3>📁 내 글 (최신 30개)</h3>
+      <h3><span class="ooc-only">📁 내 OOC (최신 30개)</span><span class="prompt-only">📁 내 프롬프트 (최신 30개)</span></h3>
       <div id="my-posts-list"></div>
       <div class="feedback" id="my-posts-status"></div>
     </div>
 
-    <h1>✏️ OOC 명령어 작성기</h1>
+    <h1><span class="ooc-only">✏️ OOC 명령어 작성기</span><span class="prompt-only">🎨 NAI 프롬프트 작성기</span></h1>
 
-    <!-- 기본 단축어: 누구에게나 보임 -->
-    <div class="quick-buttons">
+    <!-- prompt 모드 기본 단축어: 가중치 (선택한 글자가 있으면 감싸고, 없으면 :: 사이에 커서) -->
+    <div class="quick-buttons prompt-only">
+      <button data-wrap-before="::" data-wrap-after="::">::가중치::</button>
+    </div>
+
+    <!-- OOC 모드 기본 단축어: 누구에게나 보임 -->
+    <div class="quick-buttons ooc-only">
       <button data-insert="{{char}}">{{char}}</button>
       <button data-insert="{{user}}">{{user}}</button>
       <button data-insert="NPC: ">NPC:</button>
@@ -127,7 +165,7 @@
     <!-- 내 단축어 버튼: 로그인했을 때만 보임 (추가/삭제는 별도 페이지에서) -->
     <div id="shortcut-section" style="display:none;">
       <div class="custom-buttons" id="custom-buttons"></div>
-      <a class="btn-link" href="?page=shortcuts" style="display:inline-block; margin-bottom:12px;">⚙️ 내 단축어 관리 →</a>
+      <a class="btn-link" id="shortcut-page-link" href="?page=shortcuts" style="display:inline-block; margin-bottom:12px;">⚙️ 내 단축어 관리 →</a>
     </div>
 
     <!-- 수정 모드일 때만 보임 -->
@@ -137,6 +175,25 @@
     </div>
 
     <textarea id="ooc-editor" placeholder="여기에 OOC 명령어를 작성하세요..."></textarea>
+    <script>
+      if (document.documentElement.classList.contains("mode-prompt"))
+        document.getElementById("ooc-editor").placeholder = "여기에 NAI 프롬프트를 작성하세요... (예: 1girl, 1.2::smile::, ...)";
+    </script>
+
+    <!-- prompt 모드 전용: 제목 + 예시 이미지 (성인물/비밀번호 칸 위) -->
+    <div class="option-box prompt-only">
+      <label for="title-input" class="field-label">📝 제목 (선택)</label>
+      <input type="text" id="title-input" class="text-input" maxlength="50" placeholder="예: 벚꽃 아래 교복 소녀" autocomplete="off" />
+
+      <span class="field-label" style="margin-top:14px;">🖼️ 예시 이미지 (선택)</span>
+      <div class="btn-row" style="margin-bottom:0;">
+        <label class="btn-small file-btn">📷 이미지 선택<input type="file" id="image-input" accept="image/*" style="display:none;" /></label>
+        <button type="button" class="btn-small btn-danger" id="image-remove-btn" style="display:none;">이미지 빼기</button>
+        <span class="feedback" id="image-status"></span>
+      </div>
+      <p class="field-hint">올리면 자동으로 크기를 줄여서 저장하고, 이미지 속 프롬프트 정보(메타데이터)는 지워져요. 링크를 열면 프롬프트 위에 크게 보여요.</p>
+      <img id="thumb-preview" class="thumb-preview" alt="예시 이미지 미리보기" style="display:none;" />
+    </div>
 
     <div class="option-box">
       <label class="check-label">
@@ -173,12 +230,12 @@
   <!-- ============ 화면 3: 내 단축어 관리 (?page=shortcuts) ============ -->
   <div class="container" id="shortcut-view" style="display:none;">
     <div class="brand-header">
-      <div class="logo">🍿</div>
-      <p class="brand-name">POPcorn.OOC</p>
-      <p class="tagline">간단하고 편리한 OOC 작성기, 팝콘입니다.</p>
+      <button type="button" class="logo logo-btn mode-toggle-btn" title="모드 전환">🍿</button>
+      <p class="brand-name"><span class="ooc-only">POPcorn.OOC</span><span class="prompt-only">POPcorn.prompt</span></p>
+      <p class="tagline"><span class="ooc-only">간단하고 편리한 OOC 작성기, 팝콘입니다.</span><span class="prompt-only">간단하고 편리한 NAI 프롬프트 공유기, 팝콘입니다.</span></p>
     </div>
-    <h1>⚙️ 내 단축어 관리</h1>
-    <div class="btn-row"><a href="./" style="text-decoration:none;"><button class="btn-secondary">← 작성하러 가기</button></a></div>
+    <h1><span class="ooc-only">⚙️ 내 단축어 관리 (OOC)</span><span class="prompt-only">⚙️ 내 단축어 관리 (prompt)</span></h1>
+    <div class="btn-row"><a href="./" class="home-link" style="text-decoration:none;"><button class="btn-secondary">← 작성하러 가기</button></a></div>
 
     <!-- 로그아웃 상태일 때 -->
     <div id="sc-page-out" style="display:none;">
@@ -206,22 +263,25 @@
   <div class="container" id="viewer-view" style="display:none;">
     <div class="brand-header">
       <div class="logo">🍿</div>
-      <p class="brand-name">POPcorn.OOC</p>
-      <p class="tagline">간단하고 편리한 OOC 작성기, 팝콘입니다.</p>
+      <p class="brand-name"><span class="ooc-only">POPcorn.OOC</span><span class="prompt-only">POPcorn.prompt</span></p>
+      <p class="tagline"><span class="ooc-only">간단하고 편리한 OOC 작성기, 팝콘입니다.</span><span class="prompt-only">간단하고 편리한 NAI 프롬프트 공유기, 팝콘입니다.</span></p>
     </div>
-    <h1>📄 공유된 OOC 명령어</h1>
+    <h1><span class="ooc-only">📄 공유된 OOC 명령어</span><span class="prompt-only">📄 공유된 NAI 프롬프트</span></h1>
     <p id="viewer-loading" style="color:#888;font-size:14px;">불러오는 중...</p>
 
     <!-- 팝업을 모두 통과하기 전까지 숨김 -->
     <div id="viewer-main" style="display:none;">
+      <!-- prompt 글의 제목 / 예시 이미지 (있을 때만 보임, 성인 확인·비밀번호 통과 후 표시) -->
+      <h2 class="viewer-title" id="viewer-title" style="display:none;"></h2>
+      <img class="viewer-thumb" id="viewer-thumb" alt="예시 이미지" style="display:none;" />
       <textarea id="viewer-content" readonly></textarea>
-      <div class="btn-row"><button class="btn-secondary" id="swap-role-btn">🔄 {{user}} ↔ {{char}} 바꾸기</button></div>
+      <div class="btn-row ooc-only"><button class="btn-secondary" id="swap-role-btn">🔄 {{user}} ↔ {{char}} 바꾸기</button></div>
       <div class="btn-row">
         <button class="btn-primary" id="copy-content-btn">📋 복사하기</button>
         <span class="feedback success" id="content-copy-feedback"></span>
       </div>
     </div>
-    <div class="btn-row"><a href="./" style="text-decoration:none;"><button class="btn-primary">✏️ 나도 작성하기</button></a></div>
+    <div class="btn-row"><a href="./" class="home-link" style="text-decoration:none;"><button class="btn-primary">✏️ 나도 작성하기</button></a></div>
     <div class="feedback error" id="viewer-error"></div>
   </div>
 
@@ -266,6 +326,134 @@
     </div>
   </div>
 
+  <!-- 🍿 모드 전환: Firebase와 상관없이 동작하도록 일반 스크립트로 분리 (새로고침 없이 바뀜) -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      function setMode(mode) {
+        var isPrompt = mode === "prompt";
+        root.classList.toggle("mode-prompt", isPrompt);
+        document.title = isPrompt ? "POPcorn.prompt" : "POPcorn.OOC";
+        document.getElementById("ooc-editor").placeholder = isPrompt
+          ? "여기에 NAI 프롬프트를 작성하세요... (예: 1girl, 1.2::smile::, ...)"
+          : "여기에 OOC 명령어를 작성하세요...";
+        // 주소창도 맞춰서 바꿔둠 (새로고침해도 같은 모드 유지). 미리보기처럼 막힌 곳에선 그냥 넘어감
+        try {
+          var q = new URLSearchParams(location.search);
+          if (isPrompt) q.set("mode", "prompt"); else q.delete("mode");
+          var s = q.toString();
+          history.replaceState(null, "", location.pathname + (s ? "?" + s : ""));
+        } catch (e) {}
+        window.dispatchEvent(new CustomEvent("popcorn-mode", { detail: isPrompt ? "prompt" : "ooc" }));
+      }
+      // 기본 단축어 버튼: Firebase 없이도 동작하게 여기서 연결
+      var ed = document.getElementById("ooc-editor");
+      function insertAt(text) {
+        var s = ed.selectionStart, e = ed.selectionEnd;
+        ed.value = ed.value.substring(0, s) + text + ed.value.substring(e);
+        ed.setSelectionRange(s + text.length, s + text.length);
+        ed.focus();
+      }
+      // 감싸기: 선택한 글자가 있으면 앞뒤로 감싸고, 없으면 before|after 사이에 커서를 둠
+      // 예) ::가중치:: → "::(커서)::"  /  "smile" 선택 후 누르면 "::smile::"
+      function wrapAt(before, after) {
+        var s = ed.selectionStart, e = ed.selectionEnd;
+        var selected = ed.value.substring(s, e);
+        ed.value = ed.value.substring(0, s) + before + selected + after + ed.value.substring(e);
+        if (selected) ed.setSelectionRange(s, s + before.length + selected.length + after.length);
+        else ed.setSelectionRange(s + before.length, s + before.length);
+        ed.focus();
+      }
+      document.querySelectorAll(".quick-buttons button").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          if (btn.hasAttribute("data-wrap-before")) wrapAt(btn.getAttribute("data-wrap-before"), btn.getAttribute("data-wrap-after"));
+          else insertAt(btn.getAttribute("data-insert"));
+        });
+      });
+
+      // ===== 예시 이미지: 브라우저에서 줄이고 다시 그려서 저장 =====
+      // 캔버스에 다시 그리면 원본 파일의 메타데이터(NAI 프롬프트 정보 등)는 전부 사라짐
+      var MAX_IMAGE_CHARS = 900000; // Firestore 문서 최대 1MB → 본문 자리를 남기고 약 900KB까지
+      var imageInput = document.getElementById("image-input");
+      var imageRemoveBtn = document.getElementById("image-remove-btn");
+      var imageStatus = document.getElementById("image-status");
+      var thumbPreview = document.getElementById("thumb-preview");
+      // 모듈 스크립트(저장 담당)가 읽어가는 값: image = 본 이미지, thumb = 내 글 목록용 작은 이미지
+      window.POPCORN_IMG = { image: "", thumb: "" };
+
+      function encode(img, maxSide, quality) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var scale = Math.min(1, maxSide / Math.max(w, h));
+        var c = document.createElement("canvas");
+        c.width = Math.max(1, Math.round(w * scale));
+        c.height = Math.max(1, Math.round(h * scale));
+        var ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); // 투명 배경 → 흰색 (JPEG 대비)
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        var url = c.toDataURL("image/webp", quality);
+        if (url.indexOf("data:image/webp") !== 0) url = c.toDataURL("image/jpeg", quality); // WebP 미지원 브라우저
+        return url;
+      }
+      // 크기 제한 안에 들어갈 때까지 점점 작게/낮은 화질로
+      function compress(img) {
+        var tries = [[1280, 0.85], [1024, 0.8], [1024, 0.7], [800, 0.7], [640, 0.6], [480, 0.5]];
+        for (var i = 0; i < tries.length; i++) {
+          var url = encode(img, tries[i][0], tries[i][1]);
+          if (url.length <= MAX_IMAGE_CHARS) return url;
+        }
+        return null;
+      }
+      function loadImage(src) {
+        return new Promise(function (resolve, reject) {
+          var img = new Image();
+          img.onload = function () { resolve(img); };
+          img.onerror = reject;
+          img.src = src;
+        });
+      }
+      function showImage(image) {
+        if (image) { thumbPreview.src = image; thumbPreview.style.display = "block"; imageRemoveBtn.style.display = "inline-block"; }
+        else { thumbPreview.removeAttribute("src"); thumbPreview.style.display = "none"; imageRemoveBtn.style.display = "none"; }
+      }
+      // 수정 모드에서 기존 이미지 채우기 / 비우기 (모듈 스크립트에서 호출)
+      window.popcornSetImage = function (image) {
+        window.POPCORN_IMG = { image: image || "", thumb: "" };
+        imageStatus.textContent = ""; imageInput.value = "";
+        showImage(image);
+        if (image) loadImage(image).then(function (img) {
+          if (window.POPCORN_IMG.image === image) window.POPCORN_IMG.thumb = encode(img, 120, 0.7);
+        }).catch(function () {});
+      };
+
+      imageInput.addEventListener("change", function () {
+        var file = imageInput.files && imageInput.files[0];
+        if (!file) return;
+        imageStatus.className = "feedback"; imageStatus.textContent = "이미지 줄이는 중...";
+        if (file.size > 30 * 1024 * 1024) { imageStatus.className = "feedback error"; imageStatus.textContent = "30MB 이하 이미지만 올릴 수 있어요."; return; }
+        var objUrl = URL.createObjectURL(file);
+        loadImage(objUrl).then(function (img) {
+          var image = compress(img);
+          if (!image) throw new Error("TOO_BIG");
+          window.POPCORN_IMG = { image: image, thumb: encode(img, 120, 0.7) };
+          showImage(image);
+          imageStatus.className = "feedback success";
+          imageStatus.textContent = "준비 완료 (" + Math.round(image.length * 0.75 / 1024) + "KB)";
+        }).catch(function (err) {
+          imageStatus.className = "feedback error";
+          imageStatus.textContent = err && err.message === "TOO_BIG" ? "이미지가 너무 커요. 다른 이미지를 골라주세요." : "이미지를 읽을 수 없어요. 다른 형식으로 올려주세요.";
+        }).then(function () { URL.revokeObjectURL(objUrl); imageInput.value = ""; });
+      });
+      imageRemoveBtn.addEventListener("click", function () { window.popcornSetImage(""); });
+
+      document.querySelectorAll(".mode-toggle-btn").forEach(function (b) {
+        b.addEventListener("click", function () {
+          setMode(root.classList.contains("mode-prompt") ? "ooc" : "prompt");
+          window.scrollTo(0, 0);
+        });
+      });
+    })();
+  </script>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import {
@@ -299,13 +487,63 @@
     let isRoleSwapped = false;
     let editingPost = null;      // 수정 중인 글 {id, hasPassword} (없으면 새 글 작성 모드)
 
-    // ?id= 가 있으면 조회 모드, 없으면 작성 모드
+    // ============================================
+    // 모드 설정: OOC / prompt 는 글·내 글 목록·단축어를 전부 따로 저장
+    // ============================================
+    const MODES = {
+      ooc: {
+        postsCol: "posts",            // 발행된 글
+        myCol: "myPosts",             // users/{uid}/ 아래 내 글 목록
+        scField: "shortcuts",         // users/{uid} 문서 안의 단축어 필드
+        idParam: "id",                // 공유 링크: ?id=글ID
+        modeQuery: "",
+      },
+      prompt: {
+        postsCol: "promptPosts",
+        myCol: "myPrompts",
+        scField: "promptShortcuts",
+        idParam: "p",                 // 공유 링크: ?p=글ID
+        modeQuery: "mode=prompt",
+      },
+    };
+    // <head>의 스크립트가 정한 모드로 시작 (🍿 버튼으로 새로고침 없이 바뀜)
+    let MODE = document.documentElement.classList.contains("mode-prompt") ? "prompt" : "ooc";
+    let M = MODES[MODE];
+
+    // 주소 만들기 도우미
+    const editorUrl = (mode) => window.location.pathname + (MODES[mode].modeQuery ? "?" + MODES[mode].modeQuery : "");
+    const shortcutUrl = (mode) => window.location.pathname + "?page=shortcuts" + (MODES[mode].modeQuery ? "&" + MODES[mode].modeQuery : "");
+    const postUrl = (id) => window.location.pathname + "?" + M.idParam + "=" + id;
+
+    // ?id= 또는 ?p= 가 있으면 조회 모드, 없으면 작성 모드
     const params = new URLSearchParams(window.location.search);
-    const postId = params.get("id");
+    const postId = params.get(M.idParam);
     const isShortcutPage = !postId && params.get("page") === "shortcuts";
     $("editor-view").style.display = !postId && !isShortcutPage ? "block" : "none";
     $("shortcut-view").style.display = isShortcutPage ? "block" : "none";
     $("viewer-view").style.display = postId ? "block" : "none";
+
+    // 링크들을 현재 모드에 맞게 연결
+    function refreshModeLinks() {
+      document.querySelectorAll(".home-link").forEach((a) => (a.href = editorUrl(MODE)));
+      $("shortcut-page-link").href = shortcutUrl(MODE);
+    }
+    refreshModeLinks();
+
+    // 🍿 버튼으로 모드가 바뀌면 (아래쪽 일반 스크립트가 알려줌) 데이터도 그 모드 것으로 교체
+    window.addEventListener("popcorn-mode", (e) => {
+      MODE = e.detail;
+      M = MODES[MODE];
+      refreshModeLinks();
+      if (editingPost) exitEditMode(true);
+      $("my-posts-panel").style.display = "none";
+      $("publish-result").classList.remove("show");
+      $("publish-status").textContent = "";
+      $("sc-status").textContent = "";
+      if (currentUser) loadShortcuts();
+      else { userShortcuts = []; renderShortcuts(); }
+    });
+
     if (postId) loadPost(postId);
 
     // ============================================
@@ -329,6 +567,17 @@
         }
       });
     }
+    // prompt 모드: 제목 / 예시 이미지 읽기·채우기
+    // (이미지 압축은 위쪽 일반 스크립트가 하고, 결과를 window.POPCORN_IMG 에 넣어둠)
+    function readPromptMeta() {
+      const img = window.POPCORN_IMG || { image: "", thumb: "" };
+      return { title: $("title-input").value.trim(), image: img.image, thumb: img.thumb };
+    }
+    function fillPromptMeta(title, image) {
+      $("title-input").value = title || "";
+      if (window.popcornSetImage) window.popcornSetImage(image || "");
+    }
+
     function flash(el, msg) { el.textContent = msg; setTimeout(() => (el.textContent = ""), 1500); }
 
     // 비밀번호 → SHA-256 해시 (글 ID를 섞어서 글마다 다른 해시). https/localhost에서만 동작
@@ -413,16 +662,19 @@
     // 내 단축어 (users/{uid} 문서의 shortcuts 목록. 읽기 1회로 불러옴)
     // ============================================
     async function loadShortcuts() {
+      const field = M.scField; // 불러오는 도중 모드가 바뀌면 결과를 버림
       try {
         const snap = await getDoc(doc(db, "users", currentUser.uid));
-        userShortcuts = snap.exists() && Array.isArray(snap.data().shortcuts) ? snap.data().shortcuts : [];
+        if (field !== M.scField) return;
+        userShortcuts = snap.exists() && Array.isArray(snap.data()[M.scField]) ? snap.data()[M.scField] : [];
       } catch (err) { console.error("단축어 불러오기 실패:", err); userShortcuts = []; }
       renderShortcuts();
     }
 
     // 목록 전체를 저장 (추가/삭제 모두 이 함수 사용)
+    // merge: 다른 모드의 단축어 필드는 건드리지 않고 현재 모드 필드만 덮어씀
     async function saveShortcuts(newList) {
-      await setDoc(doc(db, "users", currentUser.uid), { shortcuts: newList });
+      await setDoc(doc(db, "users", currentUser.uid), { [M.scField]: newList }, { merge: true });
       userShortcuts = newList;
       renderShortcuts();
     }
@@ -480,7 +732,7 @@
       const listEl = $("my-posts-list"), status = $("my-posts-status");
       listEl.innerHTML = ""; status.textContent = "불러오는 중..."; status.className = "feedback";
       try {
-        const q = query(collection(db, "users", currentUser.uid, "myPosts"), orderBy("createdAt", "desc"), limit(30));
+        const q = query(collection(db, "users", currentUser.uid, M.myCol), orderBy("createdAt", "desc"), limit(30));
         const snap = await getDocs(q);
         status.textContent = snap.empty ? "아직 발행한 글이 없어요. (로그인 상태에서 발행한 글만 모여요)" : "";
         snap.forEach((d) => {
@@ -489,10 +741,11 @@
           item.className = "my-post-item";
           const a = document.createElement("a");
           a.className = "my-post-link";
-          a.href = window.location.pathname + "?id=" + d.id;
+          a.href = postUrl(d.id);
           const prev = document.createElement("div");
           prev.className = "my-post-preview";
-          prev.textContent = (data.isAdult ? "🔞 " : "") + (data.hasPassword ? "🔒 " : "") + data.preview;
+          // prompt 글은 제목이 있으면 제목을, 없으면 내용 앞부분을 보여줌
+          prev.textContent = (data.isAdult ? "🔞 " : "") + (data.hasPassword ? "🔒 " : "") + (data.title || data.preview);
           const date = document.createElement("div");
           date.className = "my-post-date";
           date.textContent = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString("ko-KR") : "";
@@ -509,6 +762,15 @@
           delBtn.onclick = () => deletePost(d.id);
           actions.append(editBtn, delBtn);
 
+          // 예시 이미지가 있으면 작은 썸네일 (성인물은 목록에서 이미지 숨김)
+          if (typeof data.thumb === "string" && data.thumb.startsWith("data:image/") && !data.isAdult) {
+            const th = document.createElement("img");
+            th.className = "my-post-thumb";
+            th.alt = "";
+            th.src = data.thumb;
+            th.onerror = () => th.remove();
+            item.append(th);
+          }
           item.append(a, actions);
           listEl.appendChild(item);
         });
@@ -521,7 +783,7 @@
     // 수정 시작: 글을 불러와 작성 칸에 채우고 "수정 모드"로 전환
     async function startEdit(id) {
       try {
-        const snap = await getDoc(doc(db, "posts", id));
+        const snap = await getDoc(doc(db, M.postsCol, id));
         if (!snap.exists()) { alert("이미 삭제된 글이에요."); loadMyPosts(); return; }
         const data = snap.data();
         editingPost = { id, hasPassword: !!data.passwordHash };
@@ -531,6 +793,7 @@
         $("password-input").placeholder = editingPost.hasPassword ? "비워두면 기존 비밀번호 유지" : "비워두면 누구나 열람 가능";
         $("remove-pw-checkbox").checked = false;
         $("remove-pw-row").style.display = editingPost.hasPassword ? "flex" : "none";
+        if (MODE === "prompt") fillPromptMeta(data.title, data.image);
         $("edit-banner").style.display = "flex";
         $("publish-btn").textContent = "💾 수정 저장";
         $("publish-status").textContent = "";
@@ -552,6 +815,7 @@
         $("ooc-editor").value = "";
         $("adult-checkbox").checked = false;
         $("password-input").value = "";
+        fillPromptMeta("", "");
       }
     }
     $("cancel-edit-btn").onclick = () => { exitEditMode(true); $("publish-status").textContent = ""; };
@@ -567,6 +831,7 @@
       const removePw = $("remove-pw-checkbox").checked;
       const status = $("publish-status");
       if (content === "") { status.textContent = "내용을 입력해주세요."; status.className = "feedback error"; return; }
+      const meta = MODE === "prompt" ? readPromptMeta() : null;
 
       const id = editingPost.id;
       $("publish-btn").disabled = true;
@@ -577,22 +842,26 @@
         if (newPassword !== "") { postUpdate.passwordHash = await hashPassword(newPassword, id); hasPassword = true; }
         else if (removePw) { postUpdate.passwordHash = deleteField(); hasPassword = false; }
 
+        const summaryUpdate = { preview: content.replace(/\s+/g, " ").slice(0, 50), isAdult, hasPassword };
+        if (meta) { // prompt: 비운 칸은 저장된 값도 지움
+          postUpdate.title = summaryUpdate.title = meta.title || deleteField();
+          postUpdate.image = meta.image || deleteField();
+          summaryUpdate.thumb = (meta.image && meta.thumb) || deleteField();
+        }
+
         const batch = writeBatch(db);
-        batch.update(doc(db, "posts", id), postUpdate);
-        batch.update(doc(db, "users", currentUser.uid, "myPosts", id), {
-          preview: content.replace(/\s+/g, " ").slice(0, 50),
-          isAdult,
-          hasPassword,
-        });
+        batch.update(doc(db, M.postsCol, id), postUpdate);
+        batch.update(doc(db, "users", currentUser.uid, M.myCol, id), summaryUpdate);
         await batch.commit();
 
-        $("share-link").value = window.location.origin + window.location.pathname + "?id=" + id;
+        $("share-link").value = window.location.origin + postUrl(id);
         $("publish-result-title").textContent = "✅ 수정 완료! 기존 링크 그대로 쓰면 돼요.";
-        const meta = [];
-        if (isAdult) meta.push("🔞 성인물");
-        if (newPassword !== "") meta.push("🔒 새 비밀번호: " + newPassword);
-        else if (hasPassword) meta.push("🔒 기존 비밀번호 유지");
-        $("publish-meta").textContent = meta.join("  ·  ");
+        const info = [];
+        if (meta && meta.title) info.push("📝 " + meta.title);
+        if (isAdult) info.push("🔞 성인물");
+        if (newPassword !== "") info.push("🔒 새 비밀번호: " + newPassword);
+        else if (hasPassword) info.push("🔒 기존 비밀번호 유지");
+        $("publish-meta").textContent = info.join("  ·  ");
         $("publish-result").classList.add("show");
         exitEditMode(true);
         status.textContent = "수정 완료!"; status.className = "feedback success";
@@ -612,8 +881,8 @@
       const status = $("my-posts-status");
       try {
         const batch = writeBatch(db);
-        batch.delete(doc(db, "posts", id));
-        batch.delete(doc(db, "users", currentUser.uid, "myPosts", id));
+        batch.delete(doc(db, M.postsCol, id));
+        batch.delete(doc(db, "users", currentUser.uid, M.myCol, id));
         await batch.commit();
         if (editingPost && editingPost.id === id) exitEditMode(true);
         await loadMyPosts();
@@ -636,9 +905,7 @@
       ed.setSelectionRange(s + text.length, s + text.length);
       ed.focus();
     }
-    document.querySelectorAll(".quick-buttons button").forEach((btn) => {
-      btn.onclick = () => insertAtCursor(btn.getAttribute("data-insert"));
-    });
+    // 기본 단축어 버튼(.quick-buttons)은 위쪽 일반 스크립트에서 연결함
 
     $("publish-btn").onclick = async () => {
       if (editingPost) return saveEdit(); // 수정 모드면 새로 발행하지 않고 기존 글을 수정
@@ -648,29 +915,39 @@
       const password = $("password-input").value.trim();
       const status = $("publish-status");
       if (content === "") { status.textContent = "내용을 입력해주세요."; status.className = "feedback error"; return; }
+      const pmeta = MODE === "prompt" ? readPromptMeta() : null;
 
       $("publish-btn").disabled = true;
       status.textContent = "발행 중..."; status.className = "feedback";
       try {
-        const newRef = doc(collection(db, "posts")); // 글 ID를 먼저 만들어둠
+        const newRef = doc(collection(db, M.postsCol)); // 글 ID를 먼저 만들어둠
         const postData = { content, createdAt: serverTimestamp(), isAdult };
         if (password !== "") postData.passwordHash = await hashPassword(password, newRef.id);
+        // prompt: 제목 / 예시 이미지는 넣었을 때만 저장
+        // 본 이미지는 글에만, 작은 썸네일은 내 글 목록(요약본)에만 저장
+        const extra = {};
+        if (pmeta && pmeta.title) extra.title = pmeta.title;
+        if (pmeta && pmeta.image) postData.image = pmeta.image;
+        Object.assign(postData, extra);
+        if (pmeta && pmeta.image && pmeta.thumb) extra.thumb = pmeta.thumb;
 
         // batch: 여러 저장을 "전부 성공 or 전부 실패"로 묶음
         const batch = writeBatch(db);
         batch.set(newRef, postData);
         if (currentUser) { // 로그인 상태면 내 글 목록에도 요약본 저장
-          batch.set(doc(db, "users", currentUser.uid, "myPosts", newRef.id), {
+          batch.set(doc(db, "users", currentUser.uid, M.myCol, newRef.id), {
             preview: content.replace(/\s+/g, " ").slice(0, 50),
             createdAt: serverTimestamp(),
             isAdult,
             hasPassword: password !== "",
+            ...extra,
           });
         }
         await batch.commit();
 
-        $("share-link").value = window.location.origin + window.location.pathname + "?id=" + newRef.id;
+        $("share-link").value = window.location.origin + postUrl(newRef.id);
         const meta = [];
+        if (extra.title) meta.push("📝 " + extra.title);
         if (isAdult) meta.push("🔞 성인물");
         if (password !== "") meta.push("🔒 비밀번호: " + password);
         if (currentUser) meta.push("📁 내 글에 저장됨");
@@ -693,7 +970,7 @@
     // ============================================
     async function loadPost(id) {
       try {
-        const snap = await getDoc(doc(db, "posts", id));
+        const snap = await getDoc(doc(db, M.postsCol, id));
         $("viewer-loading").style.display = "none";
         if (!snap.exists()) { $("viewer-error").textContent = "글을 찾을 수 없어요. 링크가 정확한지 확인해주세요."; return; }
         const data = snap.data();
@@ -701,6 +978,18 @@
         if (data.isAdult === true) await showAdultGate();
         if (data.passwordHash) await showPasswordGate(id, data.passwordHash);
         $("gate-overlay").classList.remove("show");
+        // prompt 글: 제목 / 예시 이미지 표시 (팝업 통과 후)
+        if (MODE === "prompt" && typeof data.title === "string" && data.title) {
+          $("viewer-title").textContent = data.title;
+          $("viewer-title").style.display = "block";
+          document.title = data.title + " - POPcorn.prompt";
+        }
+        if (MODE === "prompt" && typeof data.image === "string" && data.image.startsWith("data:image/")) {
+          const img = $("viewer-thumb");
+          img.onerror = () => (img.style.display = "none");
+          img.src = data.image;
+          img.style.display = "block";
+        }
         $("viewer-content").value = originalPostContent;
         $("viewer-main").style.display = "block";
       } catch (err) {
@@ -742,7 +1031,7 @@
         $("gate-password-input").focus();
       });
     }
-    document.querySelectorAll(".gate-back-btn").forEach((b) => { b.onclick = () => (window.location.href = window.location.pathname); });
+    document.querySelectorAll(".gate-back-btn").forEach((b) => { b.onclick = () => (window.location.href = editorUrl(MODE)); });
 
     // {{user}} ↔ {{char}} 맞바꾸기 (임시 문자열을 거쳐야 서로 꼬이지 않음)
     function swapUserAndChar(text) {
